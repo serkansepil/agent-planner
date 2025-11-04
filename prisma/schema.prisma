@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model User {
+  id        String      @id @default(uuid())
+  email     String      @unique
+  password  String
+  name      String
+  role      UserRole    @default(USER)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  agents     Agent[]
+  workspaces Workspace[]
+  sessions   Session[]
+
+  @@map("users")
+}
+
+model Agent {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  systemPrompt String   @db.Text
+  config       Json?    @default("{}")
+  ownerId      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  owner          User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  hostedWorkspaces Workspace[]
+  messages       Message[]
+
+  @@index([ownerId])
+  @@map("agents")
+}
+
+model Workspace {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  ownerId     String
+  hostAgentId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  hostAgent Agent     @relation(fields: [hostAgentId], references: [id], onDelete: Restrict)
+  sessions  Session[]
+
+  @@index([ownerId])
+  @@index([hostAgentId])
+  @@map("workspaces")
+}
+
+model Session {
+  id          String        @id @default(uuid())
+  workspaceId String
+  userId      String
+  status      SessionStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([status])
+  @@map("sessions")
+}
+
+model Message {
+  id        String      @id @default(uuid())
+  sessionId String
+  content   String      @db.Text
+  role      MessageRole
+  agentId   String?
+  createdAt DateTime    @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@index([agentId])
+  @@map("messages")
+}
