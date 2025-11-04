@@ -116,10 +116,77 @@ The API will be available at `http://localhost:3000/api`
 
 ### Protected Routes
 
-Add the JWT token to the Authorization header:
+All endpoints below require JWT authentication. Add the JWT token to the Authorization header:
 ```
 Authorization: Bearer <your-jwt-token>
 ```
+
+### Agents
+
+- `POST /api/agents` - Create a new agent
+  ```json
+  {
+    "name": "Customer Support Agent",
+    "description": "A helpful customer support assistant",
+    "systemPrompt": "You are a friendly customer support agent...",
+    "config": { "temperature": 0.7 }
+  }
+  ```
+
+- `GET /api/agents` - Get all agents for the current user
+- `GET /api/agents/:id` - Get a specific agent
+- `PATCH /api/agents/:id` - Update an agent
+- `DELETE /api/agents/:id` - Delete an agent
+
+### Workspaces
+
+- `POST /api/workspaces` - Create a new workspace
+  ```json
+  {
+    "name": "Customer Support Workspace",
+    "description": "Main workspace for customer support",
+    "hostAgentId": "agent-uuid-here"
+  }
+  ```
+
+- `GET /api/workspaces` - Get all workspaces for the current user
+- `GET /api/workspaces/:id` - Get a specific workspace
+- `PATCH /api/workspaces/:id` - Update a workspace
+- `DELETE /api/workspaces/:id` - Delete a workspace
+
+### Sessions
+
+- `POST /api/sessions` - Create a new session
+  ```json
+  {
+    "workspaceId": "workspace-uuid-here"
+  }
+  ```
+
+- `GET /api/sessions?workspaceId=uuid` - Get all sessions (optionally filter by workspace)
+- `GET /api/sessions/:id` - Get a specific session with messages
+- `PATCH /api/sessions/:id` - Update session status
+  ```json
+  {
+    "status": "COMPLETED"
+  }
+  ```
+- `DELETE /api/sessions/:id` - Delete a session
+
+### Messages
+
+- `POST /api/messages` - Create a new message
+  ```json
+  {
+    "sessionId": "session-uuid-here",
+    "content": "Hello, I need help!",
+    "role": "USER"
+  }
+  ```
+
+- `GET /api/messages?sessionId=uuid` - Get all messages for a session
+- `GET /api/messages/:id` - Get a specific message
+- `DELETE /api/messages/:id` - Delete a message
 
 ## Available Scripts
 
