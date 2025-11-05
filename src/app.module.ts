@@ -15,6 +15,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { MessagesModule } from './messages/messages.module';
 import { ExecutionModule } from './execution/execution.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -32,6 +33,7 @@ import { HealthModule } from './health/health.module';
     SessionsModule,
     MessagesModule,
     ExecutionModule,
+    KnowledgeModule,
     HealthModule,
   ],
   controllers: [AppController],
