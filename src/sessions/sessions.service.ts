@@ -270,7 +270,7 @@ export class SessionsService {
       data: {
         status: SessionStatus.PAUSED,
         metadata: {
-          ...session.metadata,
+          ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
           pausedAt: new Date(),
           pauseReason: pauseDto.reason,
         },
@@ -308,7 +308,7 @@ export class SessionsService {
       data: {
         status: SessionStatus.ACTIVE,
         metadata: {
-          ...session.metadata,
+          ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
           resumedAt: new Date(),
           resumeNotes: resumeDto.notes,
         },
@@ -393,7 +393,7 @@ export class SessionsService {
           status: SessionStatus.COMPLETED,
           endedAt: new Date(),
           metadata: {
-            ...session.metadata,
+            ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
             timedOut: true,
           },
         },
@@ -436,7 +436,7 @@ export class SessionsService {
             status: SessionStatus.COMPLETED,
             endedAt: new Date(),
             metadata: {
-              ...session.metadata,
+              ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
               autoEnded: true,
               reason: 'inactivity',
             },
@@ -556,7 +556,7 @@ export class SessionsService {
       sessionId: session.id,
       workspaceId: session.workspaceId,
       userId: session.userId,
-      title: session.title,
+      title: session.title ?? undefined,
       status: session.status,
       startedAt,
       endedAt: session.endedAt ? endedAt : undefined,
@@ -572,7 +572,7 @@ export class SessionsService {
       tokensByAgent: Object.keys(tokensByAgent).length > 0 ? tokensByAgent : undefined,
       contextSize: JSON.stringify(context).length,
       contextKeys,
-      metadata: session.metadata,
+      metadata: (typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : undefined) as Record<string, any> | undefined,
     };
   }
 
@@ -601,7 +601,7 @@ export class SessionsService {
         id: session.id,
         workspaceId: session.workspaceId,
         userId: session.userId,
-        title: session.title,
+        title: session.title ?? undefined,
         status: session.status,
         startedAt: new Date(session.startedAt),
         endedAt: session.endedAt ? new Date(session.endedAt) : undefined,
@@ -623,7 +623,7 @@ export class SessionsService {
     }
 
     if (exportDto.includeMetadata) {
-      exportData.metadata = session.metadata;
+      exportData.metadata = (typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : undefined) as Record<string, any> | undefined;
     }
 
     return exportData;

@@ -173,24 +173,25 @@ export class VectorSearchService {
     documentId: string,
     limit: number = 100,
   ): Promise<VectorSearchResult[]> {
-    const chunks = await this.prisma.documentChunk.findMany({
-      where: {
-        documentId,
-        embedding: { not: null },
-      },
-      include: {
-        document: {
-          select: {
-            id: true,
-            title: true,
-            filename: true,
-            tags: true,
-          },
-        },
-      },
-      orderBy: { chunkIndex: 'asc' },
-      take: limit,
-    });
+    // Use raw SQL since embedding is an Unsupported type
+    const chunks: any[] = await this.prisma.$queryRaw`
+      SELECT
+        dc.id,
+        dc."documentId",
+        dc.content,
+        dc."chunkIndex",
+        dc.metadata,
+        kd.id as "doc_id",
+        kd.title,
+        kd.filename,
+        kd.tags
+      FROM document_chunks dc
+      JOIN knowledge_documents kd ON dc."documentId" = kd.id
+      WHERE dc."documentId" = ${documentId}::uuid
+        AND dc.embedding IS NOT NULL
+      ORDER BY dc."chunkIndex" ASC
+      LIMIT ${limit}
+    `;
 
     return chunks.map((chunk) => ({
       chunkId: chunk.id,
@@ -200,10 +201,10 @@ export class VectorSearchService {
       chunkIndex: chunk.chunkIndex,
       metadata: chunk.metadata,
       document: {
-        id: chunk.document.id,
-        title: chunk.document.title,
-        filename: chunk.document.filename,
-        tags: chunk.document.tags,
+        id: chunk.doc_id,
+        title: chunk.title,
+        filename: chunk.filename,
+        tags: chunk.tags,
       },
     }));
   }
@@ -217,12 +218,15 @@ export class VectorSearchService {
     chunksWithoutEmbeddings: number;
     percentageComplete: number;
   }> {
-    const [totalChunks, chunksWithEmbeddings] = await Promise.all([
-      this.prisma.documentChunk.count(),
-      this.prisma.documentChunk.count({
-        where: { embedding: { not: null } },
-      }),
-    ]);
+    const totalChunks = await this.prisma.documentChunk.count();
+
+    // Use raw SQL to count chunks with embeddings since embedding is Unsupported type
+    const result: any[] = await this.prisma.$queryRaw`
+      SELECT COUNT(*) as count
+      FROM document_chunks
+      WHERE embedding IS NOT NULL
+    `;
+    const chunksWithEmbeddings = Number(result[0]?.count || 0);
 
     const chunksWithoutEmbeddings = totalChunks - chunksWithEmbeddings;
     const percentageComplete =
@@ -244,18 +248,20 @@ export class VectorSearchService {
     similarityThreshold: number = 0.95,
     limit: number = 10,
   ): Promise<VectorSearchResult[]> {
-    // Get the chunk's embedding
-    const chunk = await this.prisma.documentChunk.findUnique({
-      where: { id: chunkId },
-      select: { embedding: true },
-    });
+    // Get the chunk's embedding using raw SQL since it's an Unsupported type
+    const chunkResult: any[] = await this.prisma.$queryRaw`
+      SELECT embedding
+      FROM document_chunks
+      WHERE id = ${chunkId}::uuid
+        AND embedding IS NOT NULL
+    `;
 
-    if (!chunk || !chunk.embedding) {
+    if (!chunkResult.length || !chunkResult[0].embedding) {
       return [];
     }
 
     // Search for similar chunks (excluding the original)
-    const embeddingStr = `[${(chunk.embedding as any).join(',')}]`;
+    const embeddingStr = `[${(chunkResult[0].embedding as any).join(',')}]`;
 
     const query = `
       SELECT

@@ -668,7 +668,7 @@ export class WorkspacesService {
         name: cloneDto.name,
         description: cloneDto.description || sourceWorkspace.description,
         avatar: sourceWorkspace.avatar,
-        config: cloneDto.includeConfig ? sourceWorkspace.config : {},
+        config: cloneDto.includeConfig ? (sourceWorkspace.config ?? {}) : {},
         metadata: {
           clonedFrom: workspaceId,
           clonedAt: new Date().toISOString(),
@@ -684,7 +684,7 @@ export class WorkspacesService {
         agentId: wa.agentId,
         role: wa.role,
         order: wa.order,
-        config: wa.config,
+        config: wa.config ?? {},
         isActive: wa.isActive,
       }));
 
@@ -705,7 +705,7 @@ export class WorkspacesService {
           description: integration.description,
           type: integration.type,
           status: 'INACTIVE', // Set to inactive by default
-          config: integration.config,
+          config: integration.config ?? {},
           workspaceId: clonedWorkspace.id,
           userId,
         })),

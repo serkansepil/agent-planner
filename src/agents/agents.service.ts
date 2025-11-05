@@ -112,7 +112,14 @@ export class AgentsService {
     });
 
     return {
-      data: agents,
+      data: agents.map((agent) => ({
+        ...agent,
+        description: agent.description ?? undefined,
+        avatar: agent.avatar ?? undefined,
+        deletedAt: agent.deletedAt ?? undefined,
+        config: (agent.config ?? {}) as Record<string, any>,
+        metadata: (agent.metadata ?? undefined) as Record<string, any> | undefined,
+      })),
       total,
       page,
       limit,
@@ -342,17 +349,17 @@ export class AgentsService {
         description: cloneDto.description || sourceAgent.description,
         systemPrompt: sourceAgent.systemPrompt,
         avatar: sourceAgent.avatar,
-        config: cloneDto.cloneConfig ? sourceAgent.config : {},
-        metadata: sourceAgent.metadata,
+        config: cloneDto.cloneConfig ? (sourceAgent.config ?? {}) : {},
+        metadata: sourceAgent.metadata ?? undefined,
         capabilities: cloneDto.cloneCapabilities
-          ? sourceAgent.capabilities
-          : null,
+          ? (sourceAgent.capabilities ?? undefined)
+          : undefined,
         rateLimitConfig: cloneDto.cloneRateLimits
-          ? sourceAgent.rateLimitConfig
-          : null,
+          ? (sourceAgent.rateLimitConfig ?? undefined)
+          : undefined,
         costTrackingConfig: cloneDto.cloneCostTracking
-          ? sourceAgent.costTrackingConfig
-          : null,
+          ? (sourceAgent.costTrackingConfig ?? undefined)
+          : undefined,
         isPublic: cloneDto.isPublic || false,
         isActive: true,
         ownerId: userId,
@@ -379,9 +386,9 @@ export class AgentsService {
         name: agent.name,
         description: agent.description,
         systemPrompt: agent.systemPrompt,
-        config: agent.config,
-        metadata: agent.metadata,
-        capabilities: agent.capabilities,
+        config: agent.config ?? {},
+        metadata: agent.metadata ?? undefined,
+        capabilities: agent.capabilities ?? undefined,
         changeLog: versionDto.changeLog || 'Version created',
         createdBy: userId,
       },
@@ -455,9 +462,9 @@ export class AgentsService {
         name: currentAgent.name,
         description: currentAgent.description,
         systemPrompt: currentAgent.systemPrompt,
-        config: currentAgent.config,
-        metadata: currentAgent.metadata,
-        capabilities: currentAgent.capabilities,
+        config: currentAgent.config ?? {},
+        metadata: currentAgent.metadata ?? undefined,
+        capabilities: currentAgent.capabilities ?? undefined,
         changeLog: `Backup before restoring to version ${version}`,
         createdBy: userId,
       },
@@ -470,9 +477,9 @@ export class AgentsService {
         name: versionToRestore.name,
         description: versionToRestore.description,
         systemPrompt: versionToRestore.systemPrompt,
-        config: versionToRestore.config,
-        metadata: versionToRestore.metadata,
-        capabilities: versionToRestore.capabilities,
+        config: versionToRestore.config ?? {},
+        metadata: versionToRestore.metadata ?? undefined,
+        capabilities: versionToRestore.capabilities ?? undefined,
         version: currentAgent.version + 1,
       },
     });
@@ -485,9 +492,9 @@ export class AgentsService {
         name: restoredAgent.name,
         description: restoredAgent.description,
         systemPrompt: restoredAgent.systemPrompt,
-        config: restoredAgent.config,
-        metadata: restoredAgent.metadata,
-        capabilities: restoredAgent.capabilities,
+        config: restoredAgent.config ?? {},
+        metadata: restoredAgent.metadata ?? undefined,
+        capabilities: restoredAgent.capabilities ?? undefined,
         changeLog:
           restoreDto?.changeLog ||
           `Restored to version ${version}`,

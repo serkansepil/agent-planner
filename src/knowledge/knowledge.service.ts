@@ -401,7 +401,7 @@ export class KnowledgeService {
       chunkIndex: chunk.chunkIndex,
       startPos: chunk.startPos,
       endPos: chunk.endPos,
-      tokenCount: chunk.tokenCount,
+      tokenCount: chunk.tokenCount ?? undefined,
       metadata: chunk.metadata,
       createdAt: chunk.createdAt,
     }));

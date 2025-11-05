@@ -74,6 +74,7 @@ export interface RAGStrategy {
     chunkSeparator: string;
     includeMetadata: boolean;
     deduplication: boolean;
+    reranking: boolean;
   };
   promptConfig: {
     systemPrompt: string;

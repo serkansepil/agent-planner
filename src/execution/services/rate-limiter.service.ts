@@ -219,7 +219,10 @@ export class RateLimiterService {
         );
 
         if (!concurrentResult.allowed) {
-          throw new HttpException(concurrentResult.reason, HttpStatus.TOO_MANY_REQUESTS);
+          throw new HttpException(
+            concurrentResult.reason || 'Agent concurrent request limit exceeded',
+            HttpStatus.TOO_MANY_REQUESTS,
+          );
         }
       }
     }
@@ -245,7 +248,10 @@ export class RateLimiterService {
         );
 
         if (!concurrentResult.allowed) {
-          throw new HttpException(concurrentResult.reason, HttpStatus.TOO_MANY_REQUESTS);
+          throw new HttpException(
+            concurrentResult.reason || 'User concurrent request limit exceeded',
+            HttpStatus.TOO_MANY_REQUESTS,
+          );
         }
       }
     }

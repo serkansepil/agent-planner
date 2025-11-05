@@ -257,33 +257,29 @@ export class RAGService {
 
     const documents = await this.prisma.knowledgeDocument.findMany({
       where,
-      include: {
-        chunks: {
-          where: {
-            embedding: null,
-          },
-          select: {
-            id: true,
-            content: true,
-          },
-        },
-      },
     });
 
     let embeddingsGenerated = 0;
 
-    // Process each document
+    // Process each document - use raw SQL to find chunks without embeddings
     for (const document of documents) {
-      if (document.chunks.length > 0) {
-        try {
-          const texts = document.chunks.map((c) => c.content);
+      try {
+        const chunks: any[] = await this.prisma.$queryRaw`
+          SELECT id, content
+          FROM document_chunks
+          WHERE "documentId" = ${document.id}::uuid
+            AND embedding IS NULL
+        `;
+
+        if (chunks.length > 0) {
+          const texts = chunks.map((c) => c.content);
           const result = await this.embeddingService.generateBatchEmbeddings(texts);
 
           // Update chunks with embeddings (would need vector search service)
           embeddingsGenerated += result.embeddings.length;
-        } catch (error) {
-          this.logger.error(`Error processing document ${document.id}:`, error);
         }
+      } catch (error) {
+        this.logger.error(`Error processing document ${document.id}:`, error);
       }
     }
 

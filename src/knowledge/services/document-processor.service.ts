@@ -1,9 +1,11 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import pdfParse from 'pdf-parse';
 import * as mammoth from 'mammoth';
 import { marked } from 'marked';
 import { createHash } from 'crypto';
 import { ExtractedDocument, DocumentMetadata } from '../interfaces/document.interface';
+
+// Use require for pdf-parse due to CommonJS module issues
+const pdfParse = require('pdf-parse');
 
 @Injectable()
 export class DocumentProcessorService {

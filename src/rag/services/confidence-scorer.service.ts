@@ -310,8 +310,8 @@ export class ConfidenceScorerService {
     }
 
     // Check for specific numbers/dates not in context
-    const answerNumbers = answer.match(/\d+/g) || [];
-    const contextNumbers = contextText.match(/\d+/g) || [];
+    const answerNumbers: string[] = answer.match(/\d+/g) || [];
+    const contextNumbers: string[] = contextText.match(/\d+/g) || [];
     const unmatchedNumbers = answerNumbers.filter(
       (num) => !contextNumbers.includes(num),
     );
