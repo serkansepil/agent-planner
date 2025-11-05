@@ -2,91 +2,170 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
+
+// ==================== ENUMS ====================
 
 enum UserRole {
   USER
   ADMIN
+  SUPER_ADMIN
 }
 
 enum SessionStatus {
   ACTIVE
   COMPLETED
   FAILED
+  PAUSED
 }
 
 enum MessageRole {
   USER
   ASSISTANT
   SYSTEM
+  TOOL
 }
 
+enum IntegrationType {
+  API
+  DATABASE
+  WEBHOOK
+  OAUTH
+  CUSTOM
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ==================== MODELS ====================
+
 model User {
-  id        String      @id @default(uuid())
-  email     String      @unique
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
   password  String
   name      String
-  role      UserRole    @default(USER)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  avatar    String?
+  role      UserRole @default(USER)
+  metadata  Json?    @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  agents     Agent[]
-  workspaces Workspace[]
-  sessions   Session[]
+  // Relations
+  agents              Agent[]
+  workspaces          Workspace[]
+  sessions            Session[]
+  integrations        Integration[]
+  knowledgeDocuments  KnowledgeDocument[]
 
+  @@index([email])
+  @@index([role])
+  @@index([createdAt])
   @@map("users")
 }
 
 model Agent {
-  id           String   @id @default(uuid())
+  id           String   @id @default(uuid()) @db.Uuid
   name         String
-  description  String?
+  description  String?  @db.Text
   systemPrompt String   @db.Text
-  config       Json?    @default("{}")
-  ownerId      String
+  avatar       String?
+  config       Json     @default("{}")
+  metadata     Json?    @default("{}")
+  isActive     Boolean  @default(true)
+  ownerId      String   @db.Uuid
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  owner          User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  hostedWorkspaces Workspace[]
-  messages       Message[]
+  // Relations
+  owner              User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  workspaceAgents    WorkspaceAgent[]
+  messages           Message[]
+  knowledgeDocuments KnowledgeDocument[]
 
   @@index([ownerId])
+  @@index([isActive])
+  @@index([createdAt])
   @@map("agents")
 }
 
 model Workspace {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid()) @db.Uuid
   name        String
-  description String?
-  ownerId     String
-  hostAgentId String
+  description String?  @db.Text
+  avatar      String?
+  config      Json     @default("{}")
+  metadata    Json?    @default("{}")
+  isActive    Boolean  @default(true)
+  ownerId     String   @db.Uuid
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  hostAgent Agent     @relation(fields: [hostAgentId], references: [id], onDelete: Restrict)
-  sessions  Session[]
+  // Relations
+  owner              User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  workspaceAgents    WorkspaceAgent[]
+  sessions           Session[]
+  integrations       Integration[]
+  knowledgeDocuments KnowledgeDocument[]
 
   @@index([ownerId])
-  @@index([hostAgentId])
+  @@index([isActive])
+  @@index([createdAt])
   @@map("workspaces")
 }
 
+model WorkspaceAgent {
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String   @db.Uuid
+  agentId     String   @db.Uuid
+  role        String   @default("member") // primary, member, assistant, etc.
+  config      Json     @default("{}")
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agent     Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, agentId])
+  @@index([workspaceId])
+  @@index([agentId])
+  @@index([isActive])
+  @@map("workspace_agents")
+}
+
 model Session {
-  id          String        @id @default(uuid())
-  workspaceId String
-  userId      String
+  id          String        @id @default(uuid()) @db.Uuid
+  workspaceId String        @db.Uuid
+  userId      String        @db.Uuid
+  title       String?
   status      SessionStatus @default(ACTIVE)
+  metadata    Json?         @default("{}")
+  startedAt   DateTime      @default(now())
+  endedAt     DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  // Relations
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages  Message[]
@@ -94,21 +173,88 @@ model Session {
   @@index([workspaceId])
   @@index([userId])
   @@index([status])
+  @@index([createdAt])
+  @@index([startedAt])
   @@map("sessions")
 }
 
 model Message {
-  id        String      @id @default(uuid())
-  sessionId String
+  id        String      @id @default(uuid()) @db.Uuid
+  sessionId String      @db.Uuid
+  agentId   String?     @db.Uuid
   content   String      @db.Text
   role      MessageRole
-  agentId   String?
+  metadata  Json?       @default("{}")
+  tokens    Int?
   createdAt DateTime    @default(now())
 
+  // Relations
   session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
 
   @@index([sessionId])
   @@index([agentId])
+  @@index([role])
+  @@index([createdAt])
   @@map("messages")
+}
+
+model Integration {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String
+  description String?           @db.Text
+  type        IntegrationType
+  status      IntegrationStatus @default(INACTIVE)
+  config      Json              @default("{}")
+  credentials Json?             @default("{}")
+  metadata    Json?             @default("{}")
+  workspaceId String?           @db.Uuid
+  userId      String            @db.Uuid
+  lastSyncAt  DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relations
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("integrations")
+}
+
+model KnowledgeDocument {
+  id          String         @id @default(uuid()) @db.Uuid
+  title       String
+  content     String         @db.Text
+  summary     String?        @db.Text
+  source      String?
+  sourceUrl   String?
+  mimeType    String?
+  fileSize    Int?
+  embedding   Unsupported("vector(1536)")?
+  status      DocumentStatus @default(PENDING)
+  metadata    Json?          @default("{}")
+  workspaceId String?        @db.Uuid
+  agentId     String?        @db.Uuid
+  userId      String         @db.Uuid
+  tags        String[]       @default([])
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agent     Agent?     @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([agentId])
+  @@index([userId])
+  @@index([status])
+  @@index([tags])
+  @@index([createdAt])
+  @@map("knowledge_documents")
 }
