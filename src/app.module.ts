@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -22,6 +23,7 @@ import { HealthModule } from './health/health.module';
     CommonModule, // Must be first for global providers
     ConfigModule,
     PrismaModule,
+    ScheduleModule.forRoot(), // Enable cron jobs
 
     // Feature modules
     AuthModule,
