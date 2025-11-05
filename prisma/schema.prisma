@@ -86,25 +86,34 @@ model User {
 }
 
 model Agent {
-  id           String    @id @default(uuid()) @db.Uuid
-  name         String
-  description  String?   @db.Text
-  systemPrompt String    @db.Text
-  avatar       String?
-  config       Json      @default("{}")
-  metadata     Json?     @default("{}")
-  isActive     Boolean   @default(true)
-  isPublic     Boolean   @default(false)
-  ownerId      String    @db.Uuid
-  deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                 String    @id @default(uuid()) @db.Uuid
+  name               String
+  description        String?   @db.Text
+  systemPrompt       String    @db.Text
+  avatar             String?
+  config             Json      @default("{}")
+  metadata           Json?     @default("{}")
+  isActive           Boolean   @default(true)
+  isPublic           Boolean   @default(false)
+  ownerId            String    @db.Uuid
+  version            Int       @default(1)
+  parentAgentId      String?   @db.Uuid
+  templateId         String?
+  capabilities       Json?     @default("[]")
+  rateLimitConfig    Json?     @default("{}")
+  costTrackingConfig Json?     @default("{}")
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   // Relations
   owner              User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   workspaceAgents    WorkspaceAgent[]
   messages           Message[]
   knowledgeDocuments KnowledgeDocument[]
+  versions           AgentVersion[]
+  clones             Agent[]          @relation("AgentClones")
+  parentAgent        Agent?           @relation("AgentClones", fields: [parentAgentId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
   @@index([isActive])
@@ -112,7 +121,33 @@ model Agent {
   @@index([deletedAt])
   @@index([createdAt])
   @@index([name])
+  @@index([parentAgentId])
+  @@index([templateId])
   @@map("agents")
+}
+
+model AgentVersion {
+  id           String   @id @default(uuid()) @db.Uuid
+  agentId      String   @db.Uuid
+  version      Int
+  name         String
+  description  String?  @db.Text
+  systemPrompt String   @db.Text
+  config       Json
+  metadata     Json?
+  capabilities Json?
+  changeLog    String?  @db.Text
+  createdBy    String   @db.Uuid
+  createdAt    DateTime @default(now())
+
+  // Relations
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, version])
+  @@index([agentId])
+  @@index([version])
+  @@index([createdAt])
+  @@map("agent_versions")
 }
 
 model Workspace {

@@ -167,4 +167,127 @@ export class AgentsController {
   restore(@Param('id') id: string, @CurrentUser() user: any) {
     return this.agentsService.restore(id, user.id);
   }
+
+  // Configuration Management
+
+  @Patch(':id/configuration')
+  @ApiOperation({ summary: 'Update agent configuration' })
+  @ApiResponse({ status: 200, description: 'Configuration updated' })
+  @ApiResponse({ status: 404, description: 'Agent not found' })
+  @ApiResponse({ status: 403, description: 'Not the owner' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  updateConfiguration(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() configUpdate: any,
+  ) {
+    return this.agentsService.updateConfiguration(id, user.id, configUpdate);
+  }
+
+  // Cloning
+
+  @Post(':id/clone')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Clone an existing agent' })
+  @ApiResponse({ status: 201, description: 'Agent cloned successfully' })
+  @ApiResponse({ status: 404, description: 'Source agent not found' })
+  @ApiResponse({ status: 403, description: 'Access forbidden' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  cloneAgent(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() cloneDto: any,
+  ) {
+    return this.agentsService.clone(id, user.id, cloneDto);
+  }
+
+  // Versioning
+
+  @Post(':id/versions')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new version of the agent' })
+  @ApiResponse({ status: 201, description: 'Version created successfully' })
+  @ApiResponse({ status: 404, description: 'Agent not found' })
+  @ApiResponse({ status: 403, description: 'Not the owner' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  createVersion(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() versionDto: any,
+  ) {
+    return this.agentsService.createVersion(id, user.id, versionDto);
+  }
+
+  @Get(':id/versions')
+  @ApiOperation({ summary: 'Get all versions of an agent' })
+  @ApiResponse({ status: 200, description: 'List of versions' })
+  @ApiResponse({ status: 404, description: 'Agent not found' })
+  @ApiResponse({ status: 403, description: 'Access forbidden' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  getVersions(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.agentsService.getVersions(id, user.id);
+  }
+
+  @Get(':id/versions/:version')
+  @ApiOperation({ summary: 'Get a specific version of an agent' })
+  @ApiResponse({ status: 200, description: 'Version details' })
+  @ApiResponse({ status: 404, description: 'Agent or version not found' })
+  @ApiResponse({ status: 403, description: 'Access forbidden' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  getVersion(
+    @Param('id') id: string,
+    @Param('version') version: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.agentsService.getVersion(id, parseInt(version), user.id);
+  }
+
+  @Post(':id/versions/:version/restore')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Restore agent to a specific version' })
+  @ApiResponse({ status: 200, description: 'Version restored successfully' })
+  @ApiResponse({ status: 404, description: 'Agent or version not found' })
+  @ApiResponse({ status: 403, description: 'Not the owner' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  restoreVersion(
+    @Param('id') id: string,
+    @Param('version') version: string,
+    @CurrentUser() user: any,
+    @Body() restoreDto: any,
+  ) {
+    return this.agentsService.restoreVersion(
+      id,
+      parseInt(version),
+      user.id,
+      restoreDto,
+    );
+  }
+
+  // Templates
+
+  @Get('templates/list')
+  @ApiOperation({ summary: 'Get all available agent templates' })
+  @ApiResponse({ status: 200, description: 'List of templates' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  getTemplates() {
+    return this.agentsService.getTemplates();
+  }
+
+  @Post('templates/:templateId')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create agent from template' })
+  @ApiResponse({ status: 201, description: 'Agent created from template' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  createFromTemplate(
+    @Param('templateId') templateId: string,
+    @CurrentUser() user: any,
+    @Body() customization?: any,
+  ) {
+    return this.agentsService.createFromTemplate(
+      user.id,
+      templateId,
+      customization,
+    );
+  }
 }

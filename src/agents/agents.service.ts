@@ -329,6 +329,244 @@ export class AgentsService {
   }
 
   /**
+   * Clone an agent
+   */
+  async clone(id: string, userId: string, cloneDto: any) {
+    // Validate access to source agent
+    const sourceAgent = await this.findOne(id, userId);
+
+    // Create cloned agent
+    const clonedAgent = await this.prisma.agent.create({
+      data: {
+        name: cloneDto.name,
+        description: cloneDto.description || sourceAgent.description,
+        systemPrompt: sourceAgent.systemPrompt,
+        avatar: sourceAgent.avatar,
+        config: cloneDto.cloneConfig ? sourceAgent.config : {},
+        metadata: sourceAgent.metadata,
+        capabilities: cloneDto.cloneCapabilities
+          ? sourceAgent.capabilities
+          : null,
+        rateLimitConfig: cloneDto.cloneRateLimits
+          ? sourceAgent.rateLimitConfig
+          : null,
+        costTrackingConfig: cloneDto.cloneCostTracking
+          ? sourceAgent.costTrackingConfig
+          : null,
+        isPublic: cloneDto.isPublic || false,
+        isActive: true,
+        ownerId: userId,
+        parentAgentId: id,
+        templateId: sourceAgent.templateId,
+      },
+    });
+
+    return clonedAgent;
+  }
+
+  /**
+   * Create a new version of an agent
+   */
+  async createVersion(id: string, userId: string, versionDto: any) {
+    // Validate ownership
+    const agent = await this.validateOwnership(id, userId);
+
+    // Create version snapshot
+    await this.prisma.agentVersion.create({
+      data: {
+        agentId: id,
+        version: agent.version,
+        name: agent.name,
+        description: agent.description,
+        systemPrompt: agent.systemPrompt,
+        config: agent.config,
+        metadata: agent.metadata,
+        capabilities: agent.capabilities,
+        changeLog: versionDto.changeLog || 'Version created',
+        createdBy: userId,
+      },
+    });
+
+    // Increment version number
+    return this.prisma.agent.update({
+      where: { id },
+      data: { version: agent.version + 1 },
+    });
+  }
+
+  /**
+   * Get all versions of an agent
+   */
+  async getVersions(id: string, userId: string) {
+    // Validate access
+    await this.findOne(id, userId);
+
+    return this.prisma.agentVersion.findMany({
+      where: { agentId: id },
+      orderBy: { version: 'desc' },
+    });
+  }
+
+  /**
+   * Get a specific version
+   */
+  async getVersion(id: string, version: number, userId: string) {
+    // Validate access
+    await this.findOne(id, userId);
+
+    const agentVersion = await this.prisma.agentVersion.findUnique({
+      where: {
+        agentId_version: {
+          agentId: id,
+          version,
+        },
+      },
+    });
+
+    if (!agentVersion) {
+      throw new NotFoundException(
+        `Version ${version} not found for agent ${id}`,
+      );
+    }
+
+    return agentVersion;
+  }
+
+  /**
+   * Restore agent to a specific version
+   */
+  async restoreVersion(
+    id: string,
+    version: number,
+    userId: string,
+    restoreDto: any,
+  ) {
+    // Validate ownership
+    const currentAgent = await this.validateOwnership(id, userId);
+
+    // Get the version to restore
+    const versionToRestore = await this.getVersion(id, version, userId);
+
+    // Create a version snapshot of current state before restoring
+    await this.prisma.agentVersion.create({
+      data: {
+        agentId: id,
+        version: currentAgent.version,
+        name: currentAgent.name,
+        description: currentAgent.description,
+        systemPrompt: currentAgent.systemPrompt,
+        config: currentAgent.config,
+        metadata: currentAgent.metadata,
+        capabilities: currentAgent.capabilities,
+        changeLog: `Backup before restoring to version ${version}`,
+        createdBy: userId,
+      },
+    });
+
+    // Restore agent to the specified version
+    const restoredAgent = await this.prisma.agent.update({
+      where: { id },
+      data: {
+        name: versionToRestore.name,
+        description: versionToRestore.description,
+        systemPrompt: versionToRestore.systemPrompt,
+        config: versionToRestore.config,
+        metadata: versionToRestore.metadata,
+        capabilities: versionToRestore.capabilities,
+        version: currentAgent.version + 1,
+      },
+    });
+
+    // Create version record for the restoration
+    await this.prisma.agentVersion.create({
+      data: {
+        agentId: id,
+        version: restoredAgent.version,
+        name: restoredAgent.name,
+        description: restoredAgent.description,
+        systemPrompt: restoredAgent.systemPrompt,
+        config: restoredAgent.config,
+        metadata: restoredAgent.metadata,
+        capabilities: restoredAgent.capabilities,
+        changeLog:
+          restoreDto?.changeLog ||
+          `Restored to version ${version}`,
+        createdBy: userId,
+      },
+    });
+
+    return restoredAgent;
+  }
+
+  /**
+   * Get available templates
+   */
+  async getTemplates() {
+    const { AGENT_TEMPLATES } = require('../constants/agent-templates');
+    return AGENT_TEMPLATES;
+  }
+
+  /**
+   * Create agent from template
+   */
+  async createFromTemplate(
+    userId: string,
+    templateId: string,
+    customization?: any,
+  ) {
+    const { AGENT_TEMPLATES } = require('../constants/agent-templates');
+
+    const template = AGENT_TEMPLATES.find((t) => t.id === templateId);
+
+    if (!template) {
+      throw new NotFoundException(`Template ${templateId} not found`);
+    }
+
+    return this.prisma.agent.create({
+      data: {
+        name: customization?.name || template.name,
+        description:
+          customization?.description || template.description,
+        systemPrompt:
+          customization?.systemPrompt || template.systemPrompt,
+        config: customization?.config || template.config,
+        capabilities:
+          customization?.capabilities || template.capabilities || null,
+        templateId: template.id,
+        ownerId: userId,
+        isPublic: customization?.isPublic || false,
+      },
+    });
+  }
+
+  /**
+   * Update agent configuration
+   */
+  async updateConfiguration(
+    id: string,
+    userId: string,
+    configUpdate: {
+      config?: any;
+      rateLimitConfig?: any;
+      costTrackingConfig?: any;
+      capabilities?: any;
+    },
+  ) {
+    // Validate ownership
+    await this.validateOwnership(id, userId);
+
+    return this.prisma.agent.update({
+      where: { id },
+      data: {
+        config: configUpdate.config,
+        rateLimitConfig: configUpdate.rateLimitConfig,
+        costTrackingConfig: configUpdate.costTrackingConfig,
+        capabilities: configUpdate.capabilities,
+      },
+    });
+  }
+
+  /**
    * Validate ownership of an agent
    * @throws NotFoundException if agent not found
    * @throws ForbiddenException if user is not the owner
