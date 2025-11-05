@@ -4,7 +4,8 @@ import { Agent, CreateAgentRequest, UpdateAgentRequest } from '@/types'
 export const agentsApi = {
   // Get all agents
   getAll: async (): Promise<Agent[]> => {
-    return apiRequest<Agent[]>('get', '/agents')
+    const response = await apiRequest<{ data: Agent[] }>('get', '/agents')
+    return response.data
   },
 
   // Get agent by ID

@@ -53,7 +53,7 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id, user.email);
 
     // Store refresh token
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
 
     return {
       user: {
@@ -90,7 +90,7 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id, user.email);
 
     // Store refresh token
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
 
     return {
       user: {
@@ -146,7 +146,7 @@ export class AuthService {
       const tokens = await this.generateTokens(user.id, user.email);
 
       // Update refresh token
-      await this.updateRefreshToken(user.id, tokens.refreshToken);
+      await this.updateRefreshToken(user.id, tokens.refresh_token);
 
       return tokens;
     } catch (error) {
@@ -259,8 +259,8 @@ export class AuthService {
     ]);
 
     return {
-      accessToken,
-      refreshToken,
+      access_token: accessToken,
+      refresh_token: refreshToken,
     };
   }
 

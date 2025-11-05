@@ -20,6 +20,7 @@ export default function NewWorkspacePage() {
       await workspacesApi.create({
         name: data.name,
         description: data.description,
+        hostAgentId: data.hostAgentId,
         config: {},
       })
 

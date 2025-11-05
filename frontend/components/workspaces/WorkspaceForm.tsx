@@ -3,18 +3,23 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
-import { Workspace } from "@/types"
+import { Workspace, Agent } from "@/types"
+import { agentsApi, handleApiError } from "@/lib/api"
+import { useToast } from "@/lib/hooks/use-toast"
 
 const workspaceSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().optional(),
   avatar: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  hostAgentId: z.string().uuid("Must select a host agent"),
   isActive: z.boolean().optional(),
 })
 
@@ -28,9 +33,15 @@ interface WorkspaceFormProps {
 }
 
 export function WorkspaceForm({ workspace, isLoading, onSubmit, onCancel }: WorkspaceFormProps) {
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [loadingAgents, setLoadingAgents] = useState(true)
+  const { toast } = useToast()
+
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
@@ -39,12 +50,34 @@ export function WorkspaceForm({ workspace, isLoading, onSubmit, onCancel }: Work
           name: workspace.name,
           description: workspace.description || "",
           avatar: workspace.avatar || "",
+          hostAgentId: workspace.hostAgentId,
           isActive: workspace.isActive,
         }
       : {
           isActive: true,
         },
   })
+
+  const selectedHostAgentId = watch("hostAgentId")
+
+  useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        const data = await agentsApi.getAll()
+        setAgents(data)
+      } catch (error) {
+        toast({
+          title: "Error loading agents",
+          description: handleApiError(error),
+          variant: "destructive",
+        })
+      } finally {
+        setLoadingAgents(false)
+      }
+    }
+    loadAgents()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -67,6 +100,32 @@ export function WorkspaceForm({ workspace, isLoading, onSubmit, onCancel }: Work
             {errors.name && (
               <p className="text-sm text-destructive">{errors.name.message}</p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hostAgentId">Host Agent *</Label>
+            <Select
+              value={selectedHostAgentId}
+              onValueChange={(value) => setValue("hostAgentId", value)}
+              disabled={isLoading || loadingAgents}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a host agent..." />
+              </SelectTrigger>
+              <SelectContent>
+                {agents.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    {agent.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.hostAgentId && (
+              <p className="text-sm text-destructive">{errors.hostAgentId.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              The primary agent that will manage this workspace
+            </p>
           </div>
 
           <div className="space-y-2">

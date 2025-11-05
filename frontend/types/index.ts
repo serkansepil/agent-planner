@@ -71,6 +71,7 @@ export interface Workspace {
   name: string
   description?: string
   avatar?: string
+  hostAgentId: string
   config: Record<string, any>
   metadata?: Record<string, any>
   isActive: boolean
@@ -197,6 +198,7 @@ export interface AuthLoginRequest {
 
 export interface AuthResponse {
   access_token: string
+  refresh_token: string
   user: User
 }
 
@@ -218,6 +220,7 @@ export interface UpdateAgentRequest {
 export interface CreateWorkspaceRequest {
   name: string
   description?: string
+  hostAgentId: string
   config?: Record<string, any>
 }
 
