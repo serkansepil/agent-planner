@@ -35,6 +35,10 @@ import {
   PaginatedDocumentResponseDto,
   DocumentChunkResponseDto,
   BulkUploadResultDto,
+  SearchQueryDto,
+  SearchResponseDto,
+  GenerateEmbeddingsDto,
+  EmbeddingStatisticsDto,
 } from './dto';
 
 @ApiTags('Knowledge Base')
@@ -242,5 +246,43 @@ export class KnowledgeController {
   ): Promise<{ message: string }> {
     await this.knowledgeService.delete(id, user.id);
     return { message: 'Document deleted successfully' };
+  }
+
+  @Post('search')
+  @ApiOperation({ summary: 'Search documents using vector similarity and/or keywords' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search completed successfully',
+    type: SearchResponseDto,
+  })
+  async search(
+    @CurrentUser() user: any,
+    @Body() dto: SearchQueryDto,
+  ): Promise<SearchResponseDto> {
+    return await this.knowledgeService.search(user.id, dto);
+  }
+
+  @Post('embeddings/generate')
+  @ApiOperation({ summary: 'Generate embeddings for document chunks' })
+  @ApiResponse({
+    status: 200,
+    description: 'Embedding generation started',
+  })
+  async generateEmbeddings(
+    @CurrentUser() user: any,
+    @Body() dto: GenerateEmbeddingsDto,
+  ): Promise<{ processed: number; failed: number }> {
+    return await this.knowledgeService.generateEmbeddings(user.id, dto);
+  }
+
+  @Get('embeddings/statistics')
+  @ApiOperation({ summary: 'Get embedding generation statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Statistics retrieved successfully',
+    type: EmbeddingStatisticsDto,
+  })
+  async getEmbeddingStatistics(): Promise<EmbeddingStatisticsDto> {
+    return await this.knowledgeService.getEmbeddingStatistics();
   }
 }

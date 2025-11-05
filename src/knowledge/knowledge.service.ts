@@ -10,6 +10,9 @@ import { DocumentStatus } from '@prisma/client';
 import { DocumentProcessorService } from './services/document-processor.service';
 import { DocumentChunkerService } from './services/document-chunker.service';
 import { MetadataExtractorService } from './services/metadata-extractor.service';
+import { EmbeddingService } from './services/embedding.service';
+import { VectorSearchService } from './services/vector-search.service';
+import { HybridSearchService } from './services/hybrid-search.service';
 import {
   UploadDocumentDto,
   DocumentResponseDto,
@@ -17,6 +20,11 @@ import {
   PaginatedDocumentResponseDto,
   DocumentChunkResponseDto,
   BulkUploadResultDto,
+  SearchQueryDto,
+  SearchResponseDto,
+  SearchType,
+  GenerateEmbeddingsDto,
+  EmbeddingStatisticsDto,
 } from './dto';
 
 @Injectable()
@@ -28,6 +36,9 @@ export class KnowledgeService {
     private readonly documentProcessor: DocumentProcessorService,
     private readonly documentChunker: DocumentChunkerService,
     private readonly metadataExtractor: MetadataExtractorService,
+    private readonly embeddingService: EmbeddingService,
+    private readonly vectorSearchService: VectorSearchService,
+    private readonly hybridSearchService: HybridSearchService,
   ) {}
 
   /**
@@ -461,6 +472,151 @@ export class KnowledgeService {
     });
 
     return versions.map((v) => this.mapToResponseDto(v));
+  }
+
+  /**
+   * Search documents
+   */
+  async search(
+    userId: string,
+    dto: SearchQueryDto,
+  ): Promise<SearchResponseDto> {
+    const startTime = Date.now();
+
+    this.logger.log(`Performing ${dto.searchType} search: "${dto.query}"`);
+
+    let results;
+
+    switch (dto.searchType) {
+      case SearchType.VECTOR:
+        const queryEmbedding = await this.embeddingService.generateQueryEmbedding(
+          dto.query,
+        );
+        results = await this.vectorSearchService.searchSimilarChunks(
+          queryEmbedding,
+          {
+            topK: dto.topK,
+            similarityThreshold: dto.similarityThreshold,
+            workspaceId: dto.workspaceId,
+            agentId: dto.agentId,
+            documentIds: dto.documentIds,
+            tags: dto.tags,
+          },
+        );
+        break;
+
+      case SearchType.KEYWORD:
+        results = await this.hybridSearchService.keywordSearch(dto.query, {
+          topK: dto.topK,
+          workspaceId: dto.workspaceId,
+          agentId: dto.agentId,
+          documentIds: dto.documentIds,
+          tags: dto.tags,
+        });
+        break;
+
+      case SearchType.HYBRID:
+      default:
+        results = await this.hybridSearchService.search(dto.query, {
+          topK: dto.topK,
+          vectorWeight: dto.vectorWeight,
+          keywordWeight: dto.keywordWeight,
+          similarityThreshold: dto.similarityThreshold,
+          minKeywordMatches: dto.minKeywordMatches,
+          workspaceId: dto.workspaceId,
+          agentId: dto.agentId,
+          documentIds: dto.documentIds,
+          tags: dto.tags,
+        });
+        break;
+    }
+
+    const executionTimeMs = Date.now() - startTime;
+
+    return {
+      results: results.map((r) => ({
+        chunkId: r.chunkId,
+        documentId: r.documentId,
+        content: r.content,
+        similarity: r.similarity,
+        chunkIndex: r.chunkIndex,
+        metadata: r.metadata,
+        document: r.document,
+        vectorScore: r.vectorScore,
+        keywordScore: r.keywordScore,
+        hybridScore: r.hybridScore,
+        matchedKeywords: r.matchedKeywords,
+      })),
+      query: dto.query,
+      searchType: dto.searchType || SearchType.HYBRID,
+      count: results.length,
+      executionTimeMs,
+    };
+  }
+
+  /**
+   * Generate embeddings for document chunks
+   */
+  async generateEmbeddings(
+    userId: string,
+    dto: GenerateEmbeddingsDto,
+  ): Promise<{ processed: number; failed: number }> {
+    this.logger.log(`Generating embeddings (batchSize: ${dto.batchSize})`);
+
+    // Get chunks that need embeddings
+    const where: any = {
+      document: { userId },
+    };
+
+    if (dto.documentId) {
+      where.documentId = dto.documentId;
+    }
+
+    if (!dto.forceRegenerate) {
+      where.embedding = null;
+    }
+
+    const chunks = await this.prisma.documentChunk.findMany({
+      where,
+      take: dto.batchSize,
+      select: {
+        id: true,
+        content: true,
+      },
+    });
+
+    if (chunks.length === 0) {
+      this.logger.log('No chunks need embeddings');
+      return { processed: 0, failed: 0 };
+    }
+
+    this.logger.log(`Generating embeddings for ${chunks.length} chunks`);
+
+    // Generate embeddings in batch
+    const texts = chunks.map((c) => c.content);
+    const batchResult = await this.embeddingService.generateBatchEmbeddings(texts);
+
+    // Update chunks with embeddings
+    const updates = chunks.map((chunk, index) => ({
+      chunkId: chunk.id,
+      embedding: batchResult.embeddings[index].embedding,
+    }));
+
+    const processed = await this.vectorSearchService.updateChunkEmbeddings(updates);
+    const failed = chunks.length - processed;
+
+    this.logger.log(
+      `Embedding generation complete: ${processed} processed, ${failed} failed`,
+    );
+
+    return { processed, failed };
+  }
+
+  /**
+   * Get embedding statistics
+   */
+  async getEmbeddingStatistics(): Promise<EmbeddingStatisticsDto> {
+    return await this.vectorSearchService.getEmbeddingStatistics();
   }
 
   /**
