@@ -5,7 +5,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { PrismaService } from '../common/prisma/prisma.service';
+import { PrismaService } from '../database/prisma.service';
 import { DocumentStatus } from '@prisma/client';
 import { DocumentProcessorService } from './services/document-processor.service';
 import { DocumentChunkerService } from './services/document-chunker.service';

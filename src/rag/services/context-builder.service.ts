@@ -50,7 +50,7 @@ export class ContextBuilderService {
     this.logger.debug(`Selected ${selectedChunks.length} chunks within token limit`);
 
     // Calculate statistics
-    const relevanceScores = selectedChunks.map((c) => c.relevance);
+    const relevanceScores = selectedChunks.map((c) => c.similarity);
     const averageRelevance =
       relevanceScores.reduce((sum, score) => sum + score, 0) /
       relevanceScores.length;

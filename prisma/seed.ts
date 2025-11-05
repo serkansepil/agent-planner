@@ -418,6 +418,7 @@ async function main() {
   await prisma.knowledgeDocument.create({
     data: {
       title: 'Getting Started Guide',
+      filename: 'getting-started-guide.md',
       content:
         'This guide will help you get started with our platform. First, create an account and verify your email. Then, set up your first workspace and invite team members. You can create agents to automate tasks and integrate with your favorite tools.',
       summary: 'A comprehensive guide for new users to get started with the platform',
@@ -439,6 +440,7 @@ async function main() {
   await prisma.knowledgeDocument.create({
     data: {
       title: 'API Documentation',
+      filename: 'api-documentation.md',
       content:
         'Our REST API provides programmatic access to all platform features. Authentication is done via JWT tokens. All endpoints require authentication except /auth/login and /auth/register. Rate limiting is applied at 100 requests per minute.',
       summary: 'Complete API reference and authentication guide',
@@ -462,6 +464,7 @@ async function main() {
   await prisma.knowledgeDocument.create({
     data: {
       title: 'Data Analysis Best Practices',
+      filename: 'data-analysis-best-practices.md',
       content:
         'When analyzing data, always start with exploratory data analysis (EDA). Check for missing values, outliers, and data distributions. Use appropriate statistical tests and visualizations. Document your assumptions and methodology.',
       summary: 'Best practices for conducting data analysis',
@@ -484,6 +487,7 @@ async function main() {
   await prisma.knowledgeDocument.create({
     data: {
       title: 'Troubleshooting Common Issues',
+      filename: 'troubleshooting-common-issues.md',
       content:
         'Common issues and their solutions: 1. Login problems - Clear cookies and cache. 2. Slow performance - Check network connection. 3. Integration errors - Verify API credentials. 4. Data sync issues - Check last sync timestamp.',
       summary: 'Solutions to frequently encountered problems',

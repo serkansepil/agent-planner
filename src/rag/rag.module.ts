@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from '../common/prisma/prisma.module';
+import { PrismaModule } from '../database/prisma.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { ExecutionModule } from '../execution/execution.module';
 import { RAGController } from './rag.controller';

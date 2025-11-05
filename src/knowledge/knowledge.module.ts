@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from '../common/prisma/prisma.module';
+import { PrismaModule } from '../database/prisma.module';
 import { KnowledgeController } from './knowledge.controller';
 import { KnowledgeService } from './knowledge.service';
 import { DocumentProcessorService } from './services/document-processor.service';
