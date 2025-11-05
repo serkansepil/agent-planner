@@ -1,35 +1,21 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './common/filters/http-exception.filter';
-import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
 
   // Get config service
   const configService = app.get(ConfigService);
 
   // Enable CORS
-  app.enableCors();
-
-  // Global validation pipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
-
-  // Global exception filters
-  app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalFilters(new PrismaExceptionFilter());
+  app.enableCors({
+    origin: configService.get<string>('CORS_ORIGIN') || '*',
+    credentials: true,
+  });
 
   // API prefix
   app.setGlobalPrefix('api');
