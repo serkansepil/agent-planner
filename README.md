@@ -1,16 +1,21 @@
 # Agent Planner - NestJS Application
 
-A complete NestJS application with authentication, database integration, and containerized infrastructure.
+A complete, production-ready NestJS application for managing AI agents, workspaces, and conversations with full authentication, database integration, and API documentation.
 
 ## Features
 
-- JWT Authentication (Register/Login)
-- Prisma ORM with PostgreSQL
-- Docker Compose setup (PostgreSQL + Redis)
-- Global validation pipes
-- Exception filters
-- Environment configuration with validation
-- TypeScript
+- **Authentication**: JWT-based authentication with register/login endpoints
+- **Complete CRUD APIs**: Agents, Workspaces, Sessions, and Messages
+- **User Management**: Profile management and password change
+- **Swagger Documentation**: Interactive API documentation at `/api/docs`
+- **Health Check**: Service health monitoring endpoint
+- **Database**: Prisma ORM with PostgreSQL
+- **Docker**: Compose setup for PostgreSQL and Redis
+- **Validation**: Global validation pipes with DTOs
+- **Error Handling**: Comprehensive exception filters
+- **Security**: Password hashing with bcrypt
+- **Pagination**: Support for paginated responses
+- **TypeScript**: Full type safety
 
 ## Tech Stack
 
@@ -20,6 +25,7 @@ A complete NestJS application with authentication, database integration, and con
 - **Cache**: Redis 7 (via Docker)
 - **Authentication**: JWT (Passport)
 - **Validation**: class-validator, class-transformer
+- **API Docs**: Swagger/OpenAPI
 - **Password Hashing**: bcrypt
 
 ## Prerequisites
@@ -91,7 +97,18 @@ npm run build
 npm run start:prod
 ```
 
-The API will be available at `http://localhost:3000/api`
+The API will be available at:
+- **API Base URL**: `http://localhost:3000/api`
+- **Swagger Documentation**: `http://localhost:3000/api/docs`
+
+## API Documentation
+
+The application includes comprehensive Swagger/OpenAPI documentation. Once the application is running, visit `http://localhost:3000/api/docs` to:
+
+- View all available endpoints
+- Test API requests directly from the browser
+- See request/response schemas
+- Authenticate and test protected endpoints
 
 ## API Endpoints
 
@@ -187,6 +204,29 @@ Authorization: Bearer <your-jwt-token>
 - `GET /api/messages?sessionId=uuid` - Get all messages for a session
 - `GET /api/messages/:id` - Get a specific message
 - `DELETE /api/messages/:id` - Delete a message
+
+### User Profile
+
+- `GET /api/users/profile` - Get current user profile
+- `PATCH /api/users/profile` - Update profile
+  ```json
+  {
+    "name": "New Name",
+    "email": "newemail@example.com"
+  }
+  ```
+- `PATCH /api/users/password` - Change password
+  ```json
+  {
+    "currentPassword": "oldpass123",
+    "newPassword": "newpass456"
+  }
+  ```
+- `DELETE /api/users/account` - Delete account
+
+### Health Check
+
+- `GET /api/health` - Check service health and database connectivity
 
 ## Available Scripts
 

@@ -8,16 +8,20 @@ import { AgentsModule } from './agents/agents.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { MessagesModule } from './messages/messages.module';
+import { UsersModule } from './users/users.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
     ConfigModule,
     PrismaModule,
     AuthModule,
+    UsersModule,
     AgentsModule,
     WorkspacesModule,
     SessionsModule,
     MessagesModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
