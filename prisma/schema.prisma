@@ -107,13 +107,14 @@ model Agent {
   updatedAt          DateTime  @updatedAt
 
   // Relations
-  owner              User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner              User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   workspaceAgents    WorkspaceAgent[]
   messages           Message[]
   knowledgeDocuments KnowledgeDocument[]
   versions           AgentVersion[]
-  clones             Agent[]          @relation("AgentClones")
-  parentAgent        Agent?           @relation("AgentClones", fields: [parentAgentId], references: [id], onDelete: SetNull)
+  executions         AgentExecution[]
+  clones             Agent[]           @relation("AgentClones")
+  parentAgent        Agent?            @relation("AgentClones", fields: [parentAgentId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
   @@index([isActive])
@@ -148,6 +149,59 @@ model AgentVersion {
   @@index([version])
   @@index([createdAt])
   @@map("agent_versions")
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  RATE_LIMITED
+}
+
+enum ExecutionProvider {
+  OPENAI
+  ANTHROPIC
+  CUSTOM
+}
+
+model AgentExecution {
+  id                String            @id @default(uuid()) @db.Uuid
+  agentId           String            @db.Uuid
+  userId            String            @db.Uuid
+  sessionId         String?           @db.Uuid
+  status            ExecutionStatus   @default(PENDING)
+  provider          ExecutionProvider
+  model             String
+  prompt            String            @db.Text
+  context           Json?
+  response          String?           @db.Text
+  inputTokens       Int?
+  outputTokens      Int?
+  totalTokens       Int?
+  cost              Float?
+  latencyMs         Int?
+  cached            Boolean           @default(false)
+  cacheKey          String?
+  retryCount        Int               @default(0)
+  errorMessage      String?           @db.Text
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  completedAt       DateTime?
+
+  // Relations
+  agent   Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  session Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([agentId])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([provider])
+  @@index([createdAt])
+  @@index([cacheKey])
+  @@map("agent_executions")
 }
 
 model Workspace {
@@ -210,9 +264,10 @@ model Session {
   updatedAt   DateTime      @updatedAt
 
   // Relations
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages  Message[]
+  executions AgentExecution[]
 
   @@index([workspaceId])
   @@index([userId])
