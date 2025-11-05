@@ -16,6 +16,7 @@ import { SessionsModule } from './sessions/sessions.module';
 import { MessagesModule } from './messages/messages.module';
 import { ExecutionModule } from './execution/execution.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
+import { RAGModule } from './rag/rag.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -34,6 +35,7 @@ import { HealthModule } from './health/health.module';
     MessagesModule,
     ExecutionModule,
     KnowledgeModule,
+    RAGModule,
     HealthModule,
   ],
   controllers: [AppController],
