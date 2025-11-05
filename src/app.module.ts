@@ -14,6 +14,7 @@ import { AgentsModule } from './agents/agents.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { MessagesModule } from './messages/messages.module';
+import { ChatModule } from './chat/chat.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -30,6 +31,7 @@ import { HealthModule } from './health/health.module';
     WorkspacesModule,
     SessionsModule,
     MessagesModule,
+    ChatModule,
     HealthModule,
   ],
   controllers: [AppController],
