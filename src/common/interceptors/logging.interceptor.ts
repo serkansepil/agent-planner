@@ -45,11 +45,10 @@ export class LoggingInterceptor implements NestInterceptor {
             `[${requestId}] Outgoing Response: ${method} ${url} ${statusCode} - ${delay}ms`,
           );
 
-          if (this.logger.isLevelEnabled('debug')) {
-            this.logger.debug(
-              `[${requestId}] Response Data: ${JSON.stringify(data)}`,
-            );
-          }
+          // Log response data in debug mode
+          this.logger.debug(
+            `[${requestId}] Response Data: ${JSON.stringify(data)}`,
+          );
         },
         error: (error) => {
           const delay = Date.now() - now;
