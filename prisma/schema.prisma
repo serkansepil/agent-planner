@@ -58,15 +58,18 @@ enum DocumentStatus {
 // ==================== MODELS ====================
 
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  email     String   @unique
-  password  String
-  name      String
-  avatar    String?
-  role      UserRole @default(USER)
-  metadata  Json?    @default("{}")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String    @id @default(uuid()) @db.Uuid
+  email                String    @unique
+  password             String
+  name                 String
+  avatar               String?
+  role                 UserRole  @default(USER)
+  metadata             Json?     @default("{}")
+  refreshToken         String?   @db.Text
+  passwordResetToken   String?   @unique
+  passwordResetExpires DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   // Relations
   agents              Agent[]
@@ -78,32 +81,127 @@ model User {
   @@index([email])
   @@index([role])
   @@index([createdAt])
+  @@index([passwordResetToken])
   @@map("users")
 }
 
 model Agent {
-  id           String   @id @default(uuid()) @db.Uuid
-  name         String
-  description  String?  @db.Text
-  systemPrompt String   @db.Text
-  avatar       String?
-  config       Json     @default("{}")
-  metadata     Json?    @default("{}")
-  isActive     Boolean  @default(true)
-  ownerId      String   @db.Uuid
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String    @id @default(uuid()) @db.Uuid
+  name               String
+  description        String?   @db.Text
+  systemPrompt       String    @db.Text
+  avatar             String?
+  config             Json      @default("{}")
+  metadata           Json?     @default("{}")
+  isActive           Boolean   @default(true)
+  isPublic           Boolean   @default(false)
+  ownerId            String    @db.Uuid
+  version            Int       @default(1)
+  parentAgentId      String?   @db.Uuid
+  templateId         String?
+  capabilities       Json?     @default("[]")
+  rateLimitConfig    Json?     @default("{}")
+  costTrackingConfig Json?     @default("{}")
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   // Relations
-  owner              User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner              User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   workspaceAgents    WorkspaceAgent[]
   messages           Message[]
   knowledgeDocuments KnowledgeDocument[]
+  versions           AgentVersion[]
+  executions         AgentExecution[]
+  clones             Agent[]           @relation("AgentClones")
+  parentAgent        Agent?            @relation("AgentClones", fields: [parentAgentId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
   @@index([isActive])
+  @@index([isPublic])
+  @@index([deletedAt])
   @@index([createdAt])
+  @@index([name])
+  @@index([parentAgentId])
+  @@index([templateId])
   @@map("agents")
+}
+
+model AgentVersion {
+  id           String   @id @default(uuid()) @db.Uuid
+  agentId      String   @db.Uuid
+  version      Int
+  name         String
+  description  String?  @db.Text
+  systemPrompt String   @db.Text
+  config       Json
+  metadata     Json?
+  capabilities Json?
+  changeLog    String?  @db.Text
+  createdBy    String   @db.Uuid
+  createdAt    DateTime @default(now())
+
+  // Relations
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, version])
+  @@index([agentId])
+  @@index([version])
+  @@index([createdAt])
+  @@map("agent_versions")
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  RATE_LIMITED
+}
+
+enum ExecutionProvider {
+  OPENAI
+  ANTHROPIC
+  CUSTOM
+}
+
+model AgentExecution {
+  id                String            @id @default(uuid()) @db.Uuid
+  agentId           String            @db.Uuid
+  userId            String            @db.Uuid
+  sessionId         String?           @db.Uuid
+  status            ExecutionStatus   @default(PENDING)
+  provider          ExecutionProvider
+  model             String
+  prompt            String            @db.Text
+  context           Json?
+  response          String?           @db.Text
+  inputTokens       Int?
+  outputTokens      Int?
+  totalTokens       Int?
+  cost              Float?
+  latencyMs         Int?
+  cached            Boolean           @default(false)
+  cacheKey          String?
+  retryCount        Int               @default(0)
+  errorMessage      String?           @db.Text
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  completedAt       DateTime?
+
+  // Relations
+  agent   Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  session Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([agentId])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([provider])
+  @@index([createdAt])
+  @@index([cacheKey])
+  @@map("agent_executions")
 }
 
 model Workspace {
@@ -166,9 +264,10 @@ model Session {
   updatedAt   DateTime      @updatedAt
 
   // Relations
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages  Message[]
+  executions AgentExecution[]
 
   @@index([workspaceId])
   @@index([userId])
@@ -179,68 +278,24 @@ model Session {
 }
 
 model Message {
-  id              String      @id @default(uuid()) @db.Uuid
-  sessionId       String      @db.Uuid
-  agentId         String?     @db.Uuid
-  content         String      @db.Text
-  role            MessageRole
-  metadata        Json?       @default("{}")
-  tokens          Int?
-  parentMessageId String?     @db.Uuid // For threading support
-  isEdited        Boolean     @default(false)
-  editedAt        DateTime?
-  isDeleted       Boolean     @default(false)
-  deletedAt       DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id        String      @id @default(uuid()) @db.Uuid
+  sessionId String      @db.Uuid
+  agentId   String?     @db.Uuid
+  content   String      @db.Text
+  role      MessageRole
+  metadata  Json?       @default("{}")
+  tokens    Int?
+  createdAt DateTime    @default(now())
 
   // Relations
-  session         Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  agent           Agent?             @relation(fields: [agentId], references: [id], onDelete: SetNull)
-  parentMessage   Message?           @relation("MessageThread", fields: [parentMessageId], references: [id], onDelete: SetNull)
-  replies         Message[]          @relation("MessageThread")
-  reactions       MessageReaction[]
-  attachments     MessageAttachment[]
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
 
   @@index([sessionId])
   @@index([agentId])
   @@index([role])
-  @@index([parentMessageId])
   @@index([createdAt])
   @@map("messages")
-}
-
-model MessageReaction {
-  id        String   @id @default(uuid()) @db.Uuid
-  messageId String   @db.Uuid
-  userId    String   @db.Uuid
-  emoji     String
-  createdAt DateTime @default(now())
-
-  // Relations
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  @@unique([messageId, userId, emoji])
-  @@index([messageId])
-  @@index([userId])
-  @@map("message_reactions")
-}
-
-model MessageAttachment {
-  id        String   @id @default(uuid()) @db.Uuid
-  messageId String   @db.Uuid
-  fileName  String
-  fileUrl   String
-  mimeType  String
-  fileSize  Int
-  metadata  Json?    @default("{}")
-  createdAt DateTime @default(now())
-
-  // Relations
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  @@index([messageId])
-  @@map("message_attachments")
 }
 
 model Integration {
@@ -271,34 +326,64 @@ model Integration {
 }
 
 model KnowledgeDocument {
-  id          String         @id @default(uuid()) @db.Uuid
-  title       String
-  content     String         @db.Text
-  summary     String?        @db.Text
-  source      String?
-  sourceUrl   String?
-  mimeType    String?
-  fileSize    Int?
-  embedding   Unsupported("vector(1536)")?
-  status      DocumentStatus @default(PENDING)
-  metadata    Json?          @default("{}")
-  workspaceId String?        @db.Uuid
-  agentId     String?        @db.Uuid
-  userId      String         @db.Uuid
-  tags        String[]       @default([])
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id               String         @id @default(uuid()) @db.Uuid
+  title            String
+  filename         String
+  content          String         @db.Text
+  summary          String?        @db.Text
+  source           String?
+  sourceUrl        String?
+  mimeType         String?
+  fileSize         Int?
+  fileHash         String?        @unique
+  embedding        Unsupported("vector(1536)")?
+  status           DocumentStatus @default(PENDING)
+  metadata         Json?          @default("{}")
+  processingConfig Json?          @default("{}")
+  version          Int            @default(1)
+  parentDocumentId String?        @db.Uuid
+  workspaceId      String?        @db.Uuid
+  agentId          String?        @db.Uuid
+  userId           String         @db.Uuid
+  tags             String[]       @default([])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   // Relations
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  agent     Agent?     @relation(fields: [agentId], references: [id], onDelete: SetNull)
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace      Workspace?            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agent          Agent?                @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks         DocumentChunk[]
+  versions       KnowledgeDocument[]   @relation("DocumentVersions")
+  parentDocument KnowledgeDocument?    @relation("DocumentVersions", fields: [parentDocumentId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId])
   @@index([agentId])
   @@index([userId])
   @@index([status])
   @@index([tags])
+  @@index([fileHash])
+  @@index([parentDocumentId])
   @@index([createdAt])
   @@map("knowledge_documents")
+}
+
+model DocumentChunk {
+  id         String   @id @default(uuid()) @db.Uuid
+  documentId String   @db.Uuid
+  content    String   @db.Text
+  chunkIndex Int
+  startPos   Int
+  endPos     Int
+  tokenCount Int?
+  embedding  Unsupported("vector(1536)")?
+  metadata   Json?    @default("{}")
+  createdAt  DateTime @default(now())
+
+  // Relations
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+  @@map("document_chunks")
 }

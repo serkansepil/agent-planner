@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -14,7 +15,9 @@ import { AgentsModule } from './agents/agents.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { MessagesModule } from './messages/messages.module';
-import { ChatModule } from './chat/chat.module';
+import { ExecutionModule } from './execution/execution.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
+import { RAGModule } from './rag/rag.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -23,6 +26,7 @@ import { HealthModule } from './health/health.module';
     CommonModule, // Must be first for global providers
     ConfigModule,
     PrismaModule,
+    ScheduleModule.forRoot(), // Enable cron jobs
 
     // Feature modules
     AuthModule,
@@ -31,7 +35,9 @@ import { HealthModule } from './health/health.module';
     WorkspacesModule,
     SessionsModule,
     MessagesModule,
-    ChatModule,
+    ExecutionModule,
+    KnowledgeModule,
+    RAGModule,
     HealthModule,
   ],
   controllers: [AppController],
