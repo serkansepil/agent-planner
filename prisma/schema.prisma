@@ -179,68 +179,24 @@ model Session {
 }
 
 model Message {
-  id              String      @id @default(uuid()) @db.Uuid
-  sessionId       String      @db.Uuid
-  agentId         String?     @db.Uuid
-  content         String      @db.Text
-  role            MessageRole
-  metadata        Json?       @default("{}")
-  tokens          Int?
-  parentMessageId String?     @db.Uuid // For threading support
-  isEdited        Boolean     @default(false)
-  editedAt        DateTime?
-  isDeleted       Boolean     @default(false)
-  deletedAt       DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id        String      @id @default(uuid()) @db.Uuid
+  sessionId String      @db.Uuid
+  agentId   String?     @db.Uuid
+  content   String      @db.Text
+  role      MessageRole
+  metadata  Json?       @default("{}")
+  tokens    Int?
+  createdAt DateTime    @default(now())
 
   // Relations
-  session         Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  agent           Agent?             @relation(fields: [agentId], references: [id], onDelete: SetNull)
-  parentMessage   Message?           @relation("MessageThread", fields: [parentMessageId], references: [id], onDelete: SetNull)
-  replies         Message[]          @relation("MessageThread")
-  reactions       MessageReaction[]
-  attachments     MessageAttachment[]
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
 
   @@index([sessionId])
   @@index([agentId])
   @@index([role])
-  @@index([parentMessageId])
   @@index([createdAt])
   @@map("messages")
-}
-
-model MessageReaction {
-  id        String   @id @default(uuid()) @db.Uuid
-  messageId String   @db.Uuid
-  userId    String   @db.Uuid
-  emoji     String
-  createdAt DateTime @default(now())
-
-  // Relations
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  @@unique([messageId, userId, emoji])
-  @@index([messageId])
-  @@index([userId])
-  @@map("message_reactions")
-}
-
-model MessageAttachment {
-  id        String   @id @default(uuid()) @db.Uuid
-  messageId String   @db.Uuid
-  fileName  String
-  fileUrl   String
-  mimeType  String
-  fileSize  Int
-  metadata  Json?    @default("{}")
-  createdAt DateTime @default(now())
-
-  // Relations
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  @@index([messageId])
-  @@map("message_attachments")
 }
 
 model Integration {
