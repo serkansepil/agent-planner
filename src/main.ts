@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { SocketIOAdapter } from './common/adapters/socket-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -16,6 +17,9 @@ async function bootstrap() {
     origin: configService.get<string>('CORS_ORIGIN') || '*',
     credentials: true,
   });
+
+  // Setup WebSocket adapter with authentication
+  app.useWebSocketAdapter(new SocketIOAdapter(app));
 
   // API prefix
   app.setGlobalPrefix('api');
