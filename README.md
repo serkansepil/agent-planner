@@ -1,11 +1,92 @@
-# Agent Planner - NestJS Application
+# Agent Planner - Full Stack Application
 
-A complete, production-ready NestJS application for managing AI agents, workspaces, and conversations with full authentication, database integration, and API documentation.
+A complete, production-ready full-stack monorepo application for managing AI agents, workspaces, and conversations with real-time chat capabilities.
+
+## Monorepo Structure
+
+This project is organized as a monorepo with the following structure:
+
+```
+agent-planner/
+├── frontend/           # Next.js frontend application
+│   ├── app/           # Next.js App Router pages
+│   ├── components/    # React components
+│   ├── lib/           # API clients and utilities
+│   └── types/         # TypeScript type definitions
+├── src/               # NestJS backend application
+│   ├── auth/          # Authentication module
+│   ├── agents/        # Agents module
+│   ├── workspaces/    # Workspaces module
+│   ├── chat/          # Real-time chat module
+│   └── ...
+├── prisma/            # Database schema and migrations
+└── docker-compose.yml # Docker services configuration
+```
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- Docker and Docker Compose
+- npm or yarn
+
+### 1. Backend Setup
+
+Start the Docker containers (PostgreSQL and Redis):
+
+```bash
+npm run docker:up
+```
+
+Install backend dependencies:
+
+```bash
+npm install
+```
+
+Set up the database:
+
+```bash
+cp .env.example .env
+npm run prisma:generate
+npm run prisma:migrate
+```
+
+Start the backend:
+
+```bash
+npm run start:dev
+```
+
+The API will be available at `http://localhost:3000/api`
+
+### 2. Frontend Setup
+
+Install frontend dependencies:
+
+```bash
+cd frontend
+npm install
+```
+
+Start the frontend development server:
+
+```bash
+npm run dev
+```
+
+The frontend will be available at `http://localhost:3001`
+
+## Overview
 
 ## Features
 
+### Backend (NestJS)
 - **Authentication**: JWT-based authentication with register/login endpoints
 - **Complete CRUD APIs**: Agents, Workspaces, Sessions, and Messages
+- **Real-time Chat**: WebSocket support with Socket.io for live messaging
+- **LLM Streaming**: Token-by-token streaming of AI responses
 - **User Management**: Profile management and password change
 - **Swagger Documentation**: Interactive API documentation at `/api/docs`
 - **Health Check**: Service health monitoring endpoint
@@ -17,8 +98,20 @@ A complete, production-ready NestJS application for managing AI agents, workspac
 - **Pagination**: Support for paginated responses
 - **TypeScript**: Full type safety
 
+### Frontend (Next.js)
+- **Modern UI**: Built with Next.js 15 App Router and React 18
+- **Component Library**: shadcn/ui components built on Radix UI
+- **Styling**: Tailwind CSS with custom design system
+- **Authentication Pages**: Login, Register, and Forgot Password
+- **Form Validation**: React Hook Form with Zod schema validation
+- **Type Safety**: Full TypeScript support with shared types
+- **API Integration**: Axios-based API client with interceptors
+- **Toast Notifications**: User-friendly notification system
+- **Responsive Design**: Mobile-first responsive layout
+
 ## Tech Stack
 
+### Backend
 - **Framework**: NestJS 11
 - **Database**: PostgreSQL 16 (via Docker)
 - **ORM**: Prisma 6
@@ -27,54 +120,25 @@ A complete, production-ready NestJS application for managing AI agents, workspac
 - **Validation**: class-validator, class-transformer
 - **API Docs**: Swagger/OpenAPI
 - **Password Hashing**: bcrypt
+- **WebSocket**: Socket.io
 
-## Prerequisites
+### Frontend
+- **Framework**: Next.js 15 (App Router)
+- **UI Library**: React 18
+- **Styling**: Tailwind CSS
+- **Components**: shadcn/ui (Radix UI)
+- **Forms**: React Hook Form + Zod
+- **HTTP Client**: Axios
+- **WebSocket Client**: Socket.io Client
+- **Language**: TypeScript
 
-- Node.js (v18 or higher)
-- Docker and Docker Compose
-- npm or yarn
+## Application URLs
 
-## Installation
-
-1. Clone the repository and install dependencies:
-
-```bash
-npm install
-```
-
-2. Copy the environment file:
-
-```bash
-cp .env.example .env
-```
-
-3. Update the `.env` file with your configuration (default values should work for local development)
-
-## Database Setup
-
-1. Start the Docker containers (PostgreSQL and Redis):
-
-```bash
-npm run docker:up
-```
-
-2. Generate Prisma Client:
-
-```bash
-npm run prisma:generate
-```
-
-3. Run database migrations:
-
-```bash
-npm run prisma:migrate
-```
-
-4. (Optional) Open Prisma Studio to view/edit data:
-
-```bash
-npm run prisma:studio
-```
+When running locally:
+- **Frontend**: http://localhost:3001
+- **Backend API**: http://localhost:3000/api
+- **API Documentation**: http://localhost:3000/api/docs
+- **WebSocket**: ws://localhost:3000
 
 ## Database Schema
 
@@ -83,23 +147,20 @@ The application includes the following models:
 - **User**: User accounts with authentication
 - **Agent**: AI agents with system prompts and configuration
 - **Workspace**: Workspaces for organizing agents and sessions
+- **WorkspaceAgent**: Many-to-many relationship between workspaces and agents
 - **Session**: User sessions within workspaces
-- **Message**: Messages exchanged in sessions
+- **Message**: Messages exchanged in sessions with threading support
+- **MessageReaction**: Emoji reactions on messages
+- **MessageAttachment**: File attachments on messages
+- **Integration**: External service integrations
+- **KnowledgeDocument**: Document storage with vector embeddings
 
-## Running the Application
+## Detailed Documentation
 
-```bash
-# Development mode with hot reload
-npm run start:dev
-
-# Production mode
-npm run build
-npm run start:prod
-```
-
-The API will be available at:
-- **API Base URL**: `http://localhost:3000/api`
-- **Swagger Documentation**: `http://localhost:3000/api/docs`
+- **Backend API**: See main README sections below
+- **Frontend**: See [frontend/README.md](./frontend/README.md)
+- **Database Schema**: See [prisma/schema.prisma](./prisma/schema.prisma)
+- **Real-time Chat**: See [src/chat/README.md](./src/chat/README.md)
 
 ## API Documentation
 
