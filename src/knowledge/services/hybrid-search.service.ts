@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaService } from '../../database/prisma.service';
 import { EmbeddingService } from './embedding.service';
 import { VectorSearchService, VectorSearchOptions, VectorSearchResult } from './vector-search.service';
 

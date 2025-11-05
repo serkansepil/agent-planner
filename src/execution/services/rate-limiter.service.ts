@@ -1,4 +1,4 @@
-import { Injectable, Logger, TooManyRequestsException } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -204,9 +204,10 @@ export class RateLimiterService {
       const agentResult = await this.checkRateLimit(agentKey, agentConfig);
 
       if (!agentResult.allowed) {
-        throw new TooManyRequestsException(
+        throw new HttpException(
           agentResult.reason ||
             `Agent rate limit exceeded. Try again at ${agentResult.resetAt.toISOString()}`,
+          HttpStatus.TOO_MANY_REQUESTS,
         );
       }
 
@@ -218,7 +219,7 @@ export class RateLimiterService {
         );
 
         if (!concurrentResult.allowed) {
-          throw new TooManyRequestsException(concurrentResult.reason);
+          throw new HttpException(concurrentResult.reason, HttpStatus.TOO_MANY_REQUESTS);
         }
       }
     }
@@ -229,9 +230,10 @@ export class RateLimiterService {
       const userResult = await this.checkRateLimit(userKey, userConfig);
 
       if (!userResult.allowed) {
-        throw new TooManyRequestsException(
+        throw new HttpException(
           userResult.reason ||
             `User rate limit exceeded. Try again at ${userResult.resetAt.toISOString()}`,
+          HttpStatus.TOO_MANY_REQUESTS,
         );
       }
 
@@ -243,7 +245,7 @@ export class RateLimiterService {
         );
 
         if (!concurrentResult.allowed) {
-          throw new TooManyRequestsException(concurrentResult.reason);
+          throw new HttpException(concurrentResult.reason, HttpStatus.TOO_MANY_REQUESTS);
         }
       }
     }

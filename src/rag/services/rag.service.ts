@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaService } from '../../database/prisma.service';
 import { HybridSearchService } from '../../knowledge/services/hybrid-search.service';
 import { EmbeddingService } from '../../knowledge/services/embedding.service';
 import { ExecutionService } from '../../execution/execution.service';
@@ -320,6 +320,7 @@ export class RAGService {
         chunkSeparator: '\n\n---\n\n',
         includeMetadata: true,
         deduplication: true,
+        reranking: false,
       },
       promptConfig: {
         systemPrompt: 'You are a helpful AI assistant with access to a knowledge base.',
@@ -347,6 +348,7 @@ export class RAGService {
         chunkSeparator: '\n\n---\n\n',
         includeMetadata: true,
         deduplication: true,
+        reranking: false,
       },
       promptConfig: {
         systemPrompt: 'You are a precise AI assistant. Only provide information from the given context.',
@@ -376,6 +378,7 @@ export class RAGService {
         chunkSeparator: '\n\n---\n\n',
         includeMetadata: true,
         deduplication: true,
+        reranking: false,
       },
       promptConfig: {
         systemPrompt: 'You are a comprehensive AI assistant. Provide detailed, well-researched answers.',
